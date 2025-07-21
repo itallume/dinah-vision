@@ -16,6 +16,9 @@ fun HomeScreen(modifier: Modifier){
             Text(text = "Home Screen!")
         }
     }
+}
 
+@Composable
+fun previsionCard(){
 
 }
