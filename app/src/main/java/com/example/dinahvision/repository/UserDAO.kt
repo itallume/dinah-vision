@@ -44,4 +44,21 @@ class UserDAO {
             false
         }
     }
+
+    suspend fun createUser(user: User) {
+        try {
+            val userData = hashMapOf(
+                "username" to user.username,
+                "password" to user.password
+            )
+
+            db.collection(collection)
+                .add(userData)
+                .await()
+        } catch (e: Exception) {
+            Log.e("UserDAO", "clarinhoi q nao, erro ao criar usuário", e)
+            throw e
+        }
+    }
 }
+
