@@ -34,4 +34,14 @@ class UserDAO {
             null
         }
     }
+
+    suspend fun login(username: String, password: String): Boolean {
+        val user = getUserByUsername(username)
+        return if (user != null && user.password == password) {
+            User.login(user)
+            true
+        } else {
+            false
+        }
+    }
 }

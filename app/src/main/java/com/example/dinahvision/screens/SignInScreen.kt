@@ -102,35 +102,22 @@ fun SignInScreen(
                     errorMessage = "Preencha todos os campos"
                 } else {
                     isLoading = true
-                    errorMessage = ""
-
                     scope.launch {
-                        try {
-                            val user = withContext(Dispatchers.IO) {
-                                UserDAO().getUserByUsername(username.trim())
-                            }
-
-                            if (user == null) {
-                                errorMessage = "Usuário não encontrado"
-                            } else if (user.password != password) {
-                                errorMessage = "Senha incorreta"
-                            } else {
-                                navController.navigate("home") {
-                                    popUpTo("signIn") { inclusive = true }
-                                }
-                            }
-                        } catch (e: Exception) {
-                            errorMessage = "Erro ao conectar: ${e.localizedMessage}"
-                        } finally {
-                            isLoading = false
+                        val success = withContext(Dispatchers.IO) {
+                            UserDAO().login(username.trim(), password)
                         }
+
+                        if (success) {
+                            navController.navigate("home") {
+                                popUpTo("signIn") { inclusive = true }
+                            }
+                        } else {
+                            errorMessage = "Usuário ou senha incorretos"
+                        }
+                        isLoading = false
                     }
                 }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 16.dp),
-            enabled = !isLoading
+            }
         ) {
             Text(if (isLoading) "Carregando..." else "Entrar")
         }

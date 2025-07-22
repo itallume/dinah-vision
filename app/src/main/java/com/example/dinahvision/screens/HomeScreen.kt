@@ -30,6 +30,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.dinahvision.models.Prevision
+import com.example.dinahvision.models.User
 import com.example.dinahvision.repository.PrevisionDAO
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -38,7 +39,7 @@ import java.util.Locale
 fun HomeScreen(modifier: Modifier) {
     var listPredictions by remember { mutableStateOf(emptyList<Prevision>()) }
     var isLoading by remember { mutableStateOf(true) }
-
+    val currentUser = User.currentUser
     LaunchedEffect(Unit) {
         val result = PrevisionDAO().listPredictions()
         listPredictions = result
@@ -51,6 +52,7 @@ fun HomeScreen(modifier: Modifier) {
         } else if (listPredictions.isEmpty()) {
             Text("Nenhuma previsão encontrada", color = Color.Gray)
         } else {
+            Text(text = "Olá ${currentUser!!.username}")
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
