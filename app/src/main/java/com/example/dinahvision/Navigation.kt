@@ -13,15 +13,10 @@ import com.example.dinahvision.screens.SignUpScreen
 fun Navigation(modifier: Modifier){
     val navController = rememberNavController()
     NavHost(navController = navController, startDestination = "signIn" ){
-        composable("signIn"){
+        composable("signIn") {
             SignInScreen(
                 modifier = modifier,
-                onClickLoginCallBack =  {
-                    navController.navigate("home")
-                },
-                onClickRegisterCallBack = {
-                    navController.navigate("signUp")
-                }
+                navController = navController
             )
         }
         composable("signUp") {
