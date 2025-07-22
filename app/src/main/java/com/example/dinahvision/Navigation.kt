@@ -20,12 +20,8 @@ fun Navigation(modifier: Modifier){
             )
         }
         composable("signUp") {
-            SignUpScreen(
-                modifier = modifier,
-                onClickRegisterCallBack = {
-                    navController.navigate("signIn")
-                }
-            )
+            // Passa só o navController, já que é o único parâmetro
+            SignUpScreen(navController = navController)
         }
         composable("home") {
             HomeScreen(modifier = modifier)
