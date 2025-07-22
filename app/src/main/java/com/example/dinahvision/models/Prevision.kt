@@ -13,7 +13,7 @@ data class Prevision(
     var endDate: Timestamp? = null,
     var predicted: Boolean = false,
     var userId: String = "",
-    var  finished: Boolean = false
+    var finished: Boolean = false
 ) {
     @DocumentId
     var id: String = ""
