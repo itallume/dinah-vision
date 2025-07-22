@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1054051796635:android:ea02d4da20bb6455fd283e",
+        "mobilesdk_app_id": "1:1054051796635:android:a0bbac69aff1f17bfd283e",
         "android_client_info": {
-          "package_name": "com.example.dinahVision"
+          "package_name": "com.example.dinahvision"
         }
       },
       "oauth_client": [],

@@ -1,18 +1,26 @@
 package com.example.dinahvision.models
 
+import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentId
 import java.util.Date
 
-data class Prevision(var title:String, var description:String, var startDate: Date,
-                     var endDate: Date, var predicted: Boolean, var user: User?) {
+
+
+data class Prevision(
+    var title: String = "",
+    var description: String = "",
+    var startDate: Timestamp? = null,
+    var endDate: Timestamp? = null,
+    var predicted: Boolean = false,
+    var user: User? = null
+) {
     @DocumentId
     var id: String = ""
-    constructor() : this(
-        title = "",
-        description = "",
-        startDate = java.util.Date(),
-        endDate = java.util.Date(),
-        predicted = false,
-        user = null
-    )
+
+    fun getStartDateAsDate(): Date = startDate?.toDate() ?: Date()
+    fun getEndDateAsDate(): Date = endDate?.toDate() ?: Date()
+
+    override fun toString(): String {
+        return "Prevision(id='$id', title='$title', startDate=$startDate, endDate=$endDate)"
+    }
 }

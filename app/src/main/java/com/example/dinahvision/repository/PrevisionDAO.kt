@@ -1,46 +1,75 @@
 package com.example.dinahvision.repository
 
+import android.util.Log
 import com.example.dinahvision.models.Prevision
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
 import kotlinx.coroutines.tasks.await
+import java.util.Date
 
 class PrevisionDAO {
     private val db = FirebaseFirestore.getInstance()
+    private val collection = "predictions"
 
     suspend fun addPrevision(prevision: Prevision) {
-        db.collection("predictions")
-            .add(prevision)
-            .addOnSuccessListener {
-                println("Previsão feita com sucesso!")
-            }
-            .addOnFailureListener { e ->
-                println("Erro ao adicionar previsão: $e")
-            }.await()
+        try {
+            val data = hashMapOf(
+                "title" to prevision.title,
+                "description" to prevision.description,
+                "startDate" to prevision.startDate,
+                "endDate" to prevision.endDate,
+                "predicted" to prevision.predicted,
+                "user" to prevision.user?.let { db.document("users/${it.uid}") }  // Referência ao documento do usuário
+            )
+
+            db.collection(collection)
+                .add(data)
+                .await()
+
+            Log.d("PrevisionDAO", "Previsão adicionada com sucesso!")
+        } catch (e: Exception) {
+            Log.e("PrevisionDAO", "Erro ao adicionar previsão", e)
+        }
     }
 
     suspend fun listPredictions(): List<Prevision> {
-        var predictions: List<Prevision> = ArrayList<Prevision>()
-        db.collection("predictions")
-            .get()
-            .addOnSuccessListener { result ->
-                predictions = result.toObjects(Prevision::class.java)
+        return try {
+            val result = db.collection(collection)
+                .orderBy("endDate", Query.Direction.ASCENDING)
+                .get()
+                .await()
+
+            result.documents.mapNotNull { document ->
+                try {
+                    Prevision().apply {
+                        id = document.id
+                        title = document.getString("title") ?: ""
+                        description = document.getString("description") ?: ""
+                        startDate = document.getTimestamp("startDate")
+                        endDate = document.getTimestamp("endDate")
+                        predicted = document.getBoolean("predicted") ?: false
+                    }
+                } catch (e: Exception) {
+                    Log.e("PrevisionDAO", "Erro ao mapear documento ${document.id}", e)
+                    null
+                }
             }
-            .addOnFailureListener { e ->
-                println("Erro ao listar produtos: $e")
-            }.await()
-        return predictions
+        } catch (e: Exception) {
+            Log.e("PrevisionDAO", "Erro ao listar previsões", e)
+            emptyList()
+        }
     }
 
-    suspend fun remove(prevision: Prevision) {
-        db.collection("produtospredictions")
-            .document(prevision.id)
-            .delete()
-            .addOnSuccessListener { result ->
-                println("Previsão removida com sucesso!")
-            }
-            .addOnFailureListener { e ->
-                println("Erro ao remover a previsão ${prevision.toString()}: $e")
-            }.await()
-    }
+    suspend fun removePrevision(previsionId: String) {
+        try {
+            db.collection(collection)
+                .document(previsionId)
+                .delete()
+                .await()
 
+            Log.d("PrevisionDAO", "Previsão removida com sucesso!")
+        } catch (e: Exception) {
+            Log.e("PrevisionDAO", "Erro ao remover previsão", e)
+        }
+    }
 }
