@@ -33,6 +33,40 @@ class PrevisionDAO {
 //        }
 //    }
 
+    suspend fun markPredictionAsCorrect(previsionId: String): Boolean {
+        return try {
+            val updates = hashMapOf<String, Any>(
+                "finished" to true,
+                "predicted" to true
+            )
+
+            db.collection(collection)
+                .document(previsionId)
+                .update(updates)
+                .await()
+            true
+        } catch (e: Exception) {
+            Log.e("PrevisionDAO", "Erro ao marcar como acerto", e)
+            false
+        }
+    }
+
+    suspend fun markPredictionAsWrong(previsionId: String): Boolean {
+        return try {
+            db.collection(collection)
+                .document(previsionId)
+                .update(
+                    "finished", true,
+                    "predicted", false
+                )
+                .await()
+            true
+        } catch (e: Exception) {
+            Log.e("PrevisionDAO", "Erro ao marcar como erro", e)
+            false
+        }
+    }
+
     suspend fun listPredictions(): List<Prevision> {
         return try {
             val result = db.collection(collection)
@@ -49,6 +83,7 @@ class PrevisionDAO {
                         startDate = document.getTimestamp("startDate")
                         endDate = document.getTimestamp("endDate")
                         predicted = document.getBoolean("predicted") ?: false
+                        finished = document.getBoolean("finished") ?: false
                     }
                 } catch (e: Exception) {
                     Log.e("PrevisionDAO", "Erro ao mapear documento ${document.id}", e)
@@ -80,6 +115,7 @@ class PrevisionDAO {
                         startDate = document.getTimestamp("startDate")
                         endDate = document.getTimestamp("endDate")
                         predicted = document.getBoolean("predicted") ?: false
+                        finished = document.getBoolean("finished") ?: false
                         userId = document.getString("userId") ?: ""
                     }
                 } catch (e: Exception) {
@@ -116,6 +152,7 @@ class PrevisionDAO {
                 "startDate" to prevision.startDate,
                 "endDate" to prevision.endDate,
                 "predicted" to prevision.predicted,
+                "finished" to prevision.finished,
                 "userId" to userID
             )
 

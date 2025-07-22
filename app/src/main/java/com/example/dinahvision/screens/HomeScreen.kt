@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
@@ -65,26 +66,22 @@ fun HomeScreen(modifier: Modifier) {
     var showDatePicker by remember { mutableStateOf(false) }
     var selectedEndDate by remember { mutableStateOf<Date?>(null) }
 
-    // Estados para tratamento de erros no modal
     var modalErrorMessage by remember { mutableStateOf<String?>(null) }
     var showModalError by remember { mutableStateOf(false) }
 
     val dateFormatter = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()) }
     val scope = rememberCoroutineScope()
 
-    // Função para carregar previsões
     fun loadPredictions() {
         scope.launch {
             try {
                 listPredictions = PrevisionDAO().listPredictionsByUser()
                 isLoading = false
             } catch (e: Exception) {
-                // Tratar erro de carregamento se necessário
             }
         }
     }
 
-    // Carrega as previsões inicialmente
     LaunchedEffect(Unit) {
         loadPredictions()
     }
@@ -93,7 +90,7 @@ fun HomeScreen(modifier: Modifier) {
     fun adjustTimezone(date: Date): Date {
         val calendar = Calendar.getInstance()
         calendar.time = date
-        calendar.add(Calendar.HOUR_OF_DAY, 3) // Ajuste para o timezone do Brasil (UTC-3)
+        calendar.add(Calendar.HOUR_OF_DAY, 3)
         return calendar.time
     }
 
@@ -128,7 +125,14 @@ fun HomeScreen(modifier: Modifier) {
                     contentPadding = PaddingValues(16.dp)
                 ) {
                     items(listPredictions) { prevision ->
-                        PredictionCard(prevision = prevision)
+                        PredictionCard(
+                            prevision = prevision,
+                            onPredictionUpdated = {
+                                scope.launch {
+                                    listPredictions = PrevisionDAO().listPredictionsByUser()
+                                }
+                            }
+                        )
                     }
                 }
             }
@@ -148,7 +152,6 @@ fun HomeScreen(modifier: Modifier) {
             }
         }
 
-        // Dialog para adicionar nova previsão
         if (showDialog) {
             AlertDialog(
                 onDismissRequest = {
@@ -177,7 +180,6 @@ fun HomeScreen(modifier: Modifier) {
                                 .padding(bottom = 8.dp)
                         )
 
-                        // Botão para selecionar data (com ajuste de timezone)
                         ElevatedButton(
                             onClick = { showDatePicker = true },
                             modifier = Modifier
@@ -190,7 +192,6 @@ fun HomeScreen(modifier: Modifier) {
                             )
                         }
 
-                        // Exibe erro do modal (se houver)
                         if (showModalError && !modalErrorMessage.isNullOrEmpty()) {
                             Text(
                                 text = modalErrorMessage!!,
@@ -287,8 +288,14 @@ fun HomeScreen(modifier: Modifier) {
     }
 }
 @Composable
-fun PredictionCard(prevision: Prevision) {
+fun PredictionCard(
+    prevision: Prevision,
+    onPredictionUpdated: () -> Unit
+) {
     val dateFormatter = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()) }
+    val scope = rememberCoroutineScope()
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
     Card(
         modifier = Modifier
@@ -319,12 +326,81 @@ fun PredictionCard(prevision: Prevision) {
                 modifier = Modifier.padding(top = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Button(onClick = { /* TODO */ }) {
-                    Text("Acertei")
+                Button(
+                    onClick = {
+                        if (!prevision.finished) {
+                            scope.launch {
+                                isLoading = true
+                                errorMessage = null
+                                try {
+                                    val success = PrevisionDAO().markPredictionAsCorrect(prevision.id)
+                                    if (success) {
+                                        onPredictionUpdated()
+                                    } else {
+                                        errorMessage = "Falha ao atualizar"
+                                    }
+                                } catch (e: Exception) {
+                                    errorMessage = "Erro: ${e.localizedMessage}"
+                                } finally {
+                                    isLoading = false
+                                }
+                            }
+                        }
+                    },
+                    enabled = !isLoading && !prevision.finished
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text("Acertei")
+                    }
                 }
-                Button(onClick = { /* TODO */ }) {
-                    Text("Errei")
+
+                Button(
+                    onClick = {
+                        if (!prevision.finished) {
+                            scope.launch {
+                                isLoading = true
+                                errorMessage = null
+                                try {
+                                    val success = PrevisionDAO().markPredictionAsWrong(prevision.id)
+                                    if (success) {
+                                        onPredictionUpdated() // Atualiza a lista
+                                    } else {
+                                        errorMessage = "Falha ao atualizar"
+                                    }
+                                } catch (e: Exception) {
+                                    errorMessage = "Erro: ${e.localizedMessage}"
+                                } finally {
+                                    isLoading = false
+                                }
+                            }
+                        }
+                    },
+                    enabled = !isLoading && !prevision.finished
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text("Errei")
+                    }
                 }
+            }
+
+            errorMessage?.let {
+                Text(
+                    text = it,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
             }
         }
     }

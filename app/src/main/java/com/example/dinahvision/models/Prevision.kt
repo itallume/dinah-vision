@@ -12,7 +12,8 @@ data class Prevision(
     var startDate: Timestamp? = null,
     var endDate: Timestamp? = null,
     var predicted: Boolean = false,
-    var userId: String = ""  // Campo para relacionamento
+    var userId: String = "",
+    var  finished: Boolean = false
 ) {
     @DocumentId
     var id: String = ""
