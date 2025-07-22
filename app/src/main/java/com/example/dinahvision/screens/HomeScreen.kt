@@ -24,28 +24,43 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.dinahvision.models.Prevision
 import com.example.dinahvision.models.User
+import com.example.dinahvision.models.User.Companion.currentUser
 import com.example.dinahvision.repository.PrevisionDAO
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Locale
 
 @Composable
 fun HomeScreen(modifier: Modifier) {
-    var listPredictions by remember { mutableStateOf(emptyList<Prevision>()) }
+    var listPredictions by remember { mutableStateOf<List<Prevision>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
-    val currentUser = User.currentUser
-    LaunchedEffect(Unit) {
-        val result = PrevisionDAO().listPredictions()
-        listPredictions = result
-        isLoading = false
-    }
+    var errorMessage by remember { mutableStateOf("") }
+    val scope = rememberCoroutineScope()
 
+    LaunchedEffect(Unit) {
+        scope.launch {
+            try {
+                listPredictions = PrevisionDAO().listPredictionsByUser()
+            } catch (e: Exception) {
+                errorMessage = if (User.currentUser == null) {
+                    "Faça login para ver suas previsões"
+                } else {
+                    "Erro ao carregar previsões: ${e.localizedMessage}"
+                }
+            } finally {
+                isLoading = false
+            }
+        }
+    }
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         if (isLoading) {
             CircularProgressIndicator()
