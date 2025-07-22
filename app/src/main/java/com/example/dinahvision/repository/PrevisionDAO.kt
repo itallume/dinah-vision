@@ -105,4 +105,35 @@ class PrevisionDAO {
             Log.e("PrevisionDAO", "Erro ao remover previsão", e)
         }
     }
+
+    suspend fun savePrevision(prevision: Prevision): String {
+        return try {
+            val userID = User.currentUser?.uid ?: throw Exception("Usuário não autenticado")
+
+            val previsionData = hashMapOf(
+                "title" to prevision.title,
+                "description" to prevision.description,
+                "startDate" to prevision.startDate,
+                "endDate" to prevision.endDate,
+                "predicted" to prevision.predicted,
+                "userId" to userID
+            )
+
+            if (prevision.id.isNotEmpty()) {
+                db.collection(collection)
+                    .document(prevision.id)
+                    .set(previsionData)
+                    .await()
+                prevision.id
+            } else {
+                val documentRef = db.collection(collection)
+                    .add(previsionData)
+                    .await()
+                documentRef.id
+            }
+        } catch (e: Exception) {
+            Log.e("PrevisionDAO", "Erro ao salvar previsão", e)
+            throw e
+        }
+    }
 }
