@@ -1,17 +1,21 @@
 package com.example.dinahvision.screens
 
 import android.util.Log
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.AlertDialog
@@ -40,8 +44,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.example.dinahvision.R
 import com.example.dinahvision.models.Prevision
 import com.example.dinahvision.models.User.Companion.currentUser
 import com.example.dinahvision.repository.PrevisionDAO
@@ -56,6 +66,15 @@ import java.util.Locale
 
 // Enum para tipos de filtro
 private enum class PrevisionFilter { CURRENT, WRONG, CORRECT }
+
+private fun getFilterColors(filter: PrevisionFilter): Pair<Color, Color> {
+    return when (filter) {
+        PrevisionFilter.WRONG -> Pair(Color(0xFFED7E75), Color(0xFF623AA2))
+        PrevisionFilter.CORRECT -> Pair(Color(0xFF83E89E), Color(0xFF3FCAD9))
+        PrevisionFilter.CURRENT -> Pair(Color(0xFFE0D9F5), Color(0xFFE0D9F5))
+    }
+}
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -103,15 +122,31 @@ fun HomeScreen(modifier: Modifier) {
     }
 
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Image(
+            painter = painterResource(id = R.drawable.home),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,             // ou ContentScale.FillBounds
+            modifier = Modifier.matchParentSize()         // ocupa todo o box
+        )
         if (isLoading) {
             CircularProgressIndicator()
         } else {
-            Column(modifier = Modifier.fillMaxSize()) {
-                Text(
-                    text = "Olá ${currentUser?.username ?: "Usuário"}",
-                    modifier = Modifier.padding(16.dp),
-                    style = MaterialTheme.typography.titleLarge
+            Column(modifier = Modifier.fillMaxSize()
+                //.padding(top = 140.dp)
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.logodinah), // o seu drawable da logo
+                    contentDescription = "Logo DinahVision",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)        // ajuste a altura que quiser
+                        //.padding(top = 10.dp, bottom = 12.dp)
                 )
+//                Text(
+//                    text = "Olá ${currentUser?.username ?: "Usuário"}",
+//                    modifier = Modifier.padding(16.dp),
+//                    style = MaterialTheme.typography.titleLarge
+//                )
 
                 // Row de botões de filtro
                 Row(
@@ -120,34 +155,51 @@ fun HomeScreen(modifier: Modifier) {
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Button( // vai setando cada botao desses pra o tipo apertado
-                        onClick = { currentFilter = PrevisionFilter.WRONG },
-                        colors = if (currentFilter == PrevisionFilter.WRONG)
-                            ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                        else
-                            ButtonDefaults.buttonColors()
-                    ) {
-                        Text("Erradas")
-                    }
-                    Button(
-                        onClick = { currentFilter = PrevisionFilter.CURRENT },
-                        colors = if (currentFilter == PrevisionFilter.CURRENT)
-                            ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                        else
-                            ButtonDefaults.buttonColors()
-                    ) {
-                        Text("Atuais")
-                    }
-                    Button(
-                        onClick = { currentFilter = PrevisionFilter.CORRECT },
-                        colors = if (currentFilter == PrevisionFilter.CORRECT)
-                            ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                        else
-                            ButtonDefaults.buttonColors()
-                    ) {
-                        Text("Acertadas")
+                    listOf(
+                        Triple(PrevisionFilter.WRONG,   "Erradas",   R.drawable.erradashome),
+                        Triple(PrevisionFilter.CURRENT, "Atuais",    R.drawable.atuaishome),
+                        Triple(PrevisionFilter.CORRECT, "Acertadas", R.drawable.acertadashome)
+                    ).forEach { (filterType, text, icon) ->
+                        val isActive = currentFilter == filterType
+                        val (startColor, _) = getFilterColors(filterType)
+
+                        Button(
+                            onClick = { currentFilter = filterType },
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(horizontal = 4.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (isActive) startColor else Color.LightGray.copy(alpha = 0.3f),
+                                contentColor   = if (isActive) Color.White else Color.Gray
+                            ),
+                            elevation = ButtonDefaults.buttonElevation(
+                                defaultElevation = if (isActive) 4.dp else 0.dp
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth(),             // ocupa toda a largura do botão
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Image(
+                                    painter = painterResource(id = icon),
+                                    contentDescription = text,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(modifier = Modifier.size(4.dp))
+                                Text(
+                                    text = text,
+                                    maxLines = 1,                // força 1 linha
+                                    softWrap = false,            // sem wrap
+                                    overflow = TextOverflow.Ellipsis,  // opcional, corta com "…" se não couber
+                                    style = MaterialTheme.typography.labelMedium
+                                )
+                            }
+                        }
                     }
                 }
+
 
                 // Lista de previsões filtradas
                 if (filteredList.isEmpty()) {
@@ -169,6 +221,7 @@ fun HomeScreen(modifier: Modifier) {
                         items(filteredList) { prevision ->
                             PredictionCard(
                                 prevision = prevision,
+                                filter = currentFilter,
                                 onPredictionUpdated = {
                                     loadPredictions()
                                 }
@@ -315,38 +368,54 @@ fun HomeScreen(modifier: Modifier) {
 
 
 @Composable
-fun PredictionCard(
+private fun PredictionCard(
     prevision: Prevision,
+    filter: PrevisionFilter,
     onPredictionUpdated: () -> Unit
 ) {
     val dateFormatter = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()) }
     val scope = rememberCoroutineScope()
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    val gradient = when (filter) {
+        PrevisionFilter.WRONG   -> Brush.linearGradient(
+            listOf(Color(0xFFED7E75), Color(0xFF623AA2))
+        )
+        PrevisionFilter.CORRECT -> Brush.linearGradient(
+            listOf(Color(0xFF83E89E), Color(0xFF3FCAD9))
+        )
+        PrevisionFilter.CURRENT -> Brush.linearGradient( //nao tem gradient só repeti cor
+            listOf(Color(0xFFE0D9F5), Color(0xFFE0D9F5))
+        )
+    }
 
-    Card(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(gradient)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 text = prevision.title,
                 style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
+                // se precisar de texto claro sobre fundo escuro:
+                color = if (filter == PrevisionFilter.CORRECT) Color.Black else Color.White,
+                modifier = Modifier.padding(bottom = 8.dp),
 
+                )
             Text(
                 text = prevision.description,
                 style = MaterialTheme.typography.bodyMedium,
+                color = if (filter == PrevisionFilter.CORRECT) Color.Black else Color.White,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
-
             Text(
                 text = "Data: ${dateFormatter.format(prevision.getEndDateAsDate())}",
                 style = MaterialTheme.typography.labelMedium,
-                color = Color.Gray
+                color = if (filter == PrevisionFilter.CORRECT) Color.Black.copy(alpha = 0.7f)
+                else Color.White.copy(alpha = 0.7f)
             )
 
             Row(
