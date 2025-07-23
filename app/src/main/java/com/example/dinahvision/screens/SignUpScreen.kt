@@ -211,7 +211,8 @@ fun SignUpScreen(
                                                 userDAO.createUser(
                                                     com.example.dinahvision.models.User(
                                                         username = username,
-                                                        password = password
+                                                        password = password,
+                                                        points = 0,
                                                     )
                                                 )
                                             }
