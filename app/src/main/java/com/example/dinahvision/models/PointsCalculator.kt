@@ -1,20 +1,28 @@
 package com.example.dinahvision.models
 
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 import java.util.Date
 
 object PointsCalculator{
-    fun calculate(prevision:Prevision):Int{
-        val currentDate = Date()
+    fun calculate(prevision: Prevision): Int {
+        if (!prevision.finished || !prevision.predicted) return 0
 
-        if (prevision.finished && prevision.predicted) {
-            val endDate = prevision.getEndDateAsDate()
+        val today: LocalDate = Instant
+            .ofEpochMilli(Date().time)
+            .atZone(ZoneId.systemDefault())
+            .toLocalDate()
 
-            return if (currentDate <= endDate) {
-                10
-            } else {
-                5
-            }
+        val endDate: LocalDate = Instant
+            .ofEpochMilli(prevision.getEndDateAsDate().time)
+            .atZone(ZoneId.systemDefault())
+            .toLocalDate()
+
+        return if (!today.isAfter(endDate)) {
+            10
+        } else {
+            5
         }
-        return 0
     }
 }

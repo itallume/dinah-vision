@@ -444,11 +444,10 @@ private fun PredictionCard(
                                 isLoading = true
                                 errorMessage = null
                                 try {
-                                    prevision.finished = true
-                                    prevision.predicted = true
                                     val success = PrevisionDAO().markPredictionAsCorrect(prevision.id)
                                     if (success) {
-                                        onPredictionUpdated()
+                                        prevision.finished = true
+                                        prevision.predicted = true
                                         val points = PointsCalculator.calculate(prevision)
                                         User.currentUser!!.points += points
                                         UserDAO().updateUser(User.currentUser!!)
@@ -479,22 +478,23 @@ private fun PredictionCard(
 
                 Button(
                     onClick = {
-                        if (!prevision.finished) {
-                            scope.launch {
-                                isLoading = true
-                                errorMessage = null
-                                try {
-                                    val success = PrevisionDAO().markPredictionAsWrong(prevision.id)
-                                    if (success) {
-                                        onPredictionUpdated() // Atualiza a lista
-                                    } else {
-                                        errorMessage = "Falha ao atualizar"
-                                    }
-                                } catch (e: Exception) {
-                                    errorMessage = "Erro: ${e.localizedMessage}"
-                                } finally {
-                                    isLoading = false
+                        scope.launch {
+                            isLoading = true
+                            errorMessage = null
+                            try {
+                                val success = PrevisionDAO().markPredictionAsWrong(prevision.id)
+                                if (success) {
+                                    val points = PointsCalculator.calculate(prevision)
+                                    User.currentUser!!.points += points
+                                    UserDAO().updateUser(User.currentUser!!)
+                                    onPredictionUpdated()
+                                } else {
+                                    errorMessage = "Falha ao atualizar"
                                 }
+                            } catch (e: Exception) {
+                                errorMessage = "Erro: ${e.localizedMessage}"
+                            } finally {
+                                isLoading = false
                             }
                         }
                     },
