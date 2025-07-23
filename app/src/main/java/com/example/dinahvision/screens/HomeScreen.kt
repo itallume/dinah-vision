@@ -3,6 +3,7 @@ package com.example.dinahvision.screens
 import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -45,16 +46,22 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.dinahvision.R
+import com.example.dinahvision.models.PointsCalculator
 import com.example.dinahvision.models.Prevision
+import com.example.dinahvision.models.User
 import com.example.dinahvision.models.User.Companion.currentUser
 import com.example.dinahvision.repository.PrevisionDAO
+import com.example.dinahvision.repository.UserDAO
 import com.google.firebase.Timestamp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -63,6 +70,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+
 
 // Enum para tipos de filtro
 private enum class PrevisionFilter { CURRENT, WRONG, CORRECT }
@@ -86,6 +94,7 @@ fun HomeScreen(modifier: Modifier) {
     var newPrevision by remember { mutableStateOf(Prevision()) }
     var showDatePicker by remember { mutableStateOf(false) }
     var selectedEndDate by remember { mutableStateOf<Date?>(null) }
+    var userPoints by remember { mutableStateOf(User.currentUser?.points ?: 0) }
 
     var modalErrorMessage by remember { mutableStateOf<String?>(null) }
     var showModalError by remember { mutableStateOf(false) }
@@ -100,6 +109,12 @@ fun HomeScreen(modifier: Modifier) {
         scope.launch {
             try {
                 listPredictions = PrevisionDAO().listPredictionsByUser()
+                User.currentUser?.let { user ->
+                    val updatedUser = UserDAO().getUser(user.uid)
+                    updatedUser?.let {
+                        userPoints = it.points
+                    }
+                }
             } catch (e: Exception) {
                 Log.e("HomeScreen", "Erro ao carregar previsões", e)
             } finally {
@@ -135,11 +150,11 @@ fun HomeScreen(modifier: Modifier) {
                 //.padding(top = 140.dp)
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.logodinah), // o seu drawable da logo
+                    painter = painterResource(id = R.drawable.logodinah),
                     contentDescription = "Logo DinahVision",
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(200.dp)        // ajuste a altura que quiser
+                        .height(150.dp)
                         //.padding(top = 10.dp, bottom = 12.dp)
                 )
 //                Text(
@@ -148,7 +163,8 @@ fun HomeScreen(modifier: Modifier) {
 //                    style = MaterialTheme.typography.titleLarge
 //                )
 
-                // Row de botões de filtro
+                DinahPointsBadge(points = userPoints)
+
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -424,13 +440,17 @@ private fun PredictionCard(
             ) {
                 Button(
                     onClick = {
-                        if (!prevision.finished) {
                             scope.launch {
                                 isLoading = true
                                 errorMessage = null
                                 try {
                                     val success = PrevisionDAO().markPredictionAsCorrect(prevision.id)
                                     if (success) {
+                                        prevision.finished = true
+                                        prevision.predicted = true
+                                        val points = PointsCalculator.calculate(prevision)
+                                        User.currentUser!!.points += points
+                                        UserDAO().updateUser(User.currentUser!!)
                                         onPredictionUpdated()
                                     } else {
                                         errorMessage = "Falha ao atualizar"
@@ -441,7 +461,7 @@ private fun PredictionCard(
                                     isLoading = false
                                 }
                             }
-                        }
+
                     },
                     enabled = !isLoading && !prevision.finished
                 ) {
@@ -458,22 +478,23 @@ private fun PredictionCard(
 
                 Button(
                     onClick = {
-                        if (!prevision.finished) {
-                            scope.launch {
-                                isLoading = true
-                                errorMessage = null
-                                try {
-                                    val success = PrevisionDAO().markPredictionAsWrong(prevision.id)
-                                    if (success) {
-                                        onPredictionUpdated() // Atualiza a lista
-                                    } else {
-                                        errorMessage = "Falha ao atualizar"
-                                    }
-                                } catch (e: Exception) {
-                                    errorMessage = "Erro: ${e.localizedMessage}"
-                                } finally {
-                                    isLoading = false
+                        scope.launch {
+                            isLoading = true
+                            errorMessage = null
+                            try {
+                                val success = PrevisionDAO().markPredictionAsWrong(prevision.id)
+                                if (success) {
+                                    val points = PointsCalculator.calculate(prevision)
+                                    User.currentUser!!.points += points
+                                    UserDAO().updateUser(User.currentUser!!)
+                                    onPredictionUpdated()
+                                } else {
+                                    errorMessage = "Falha ao atualizar"
                                 }
+                            } catch (e: Exception) {
+                                errorMessage = "Erro: ${e.localizedMessage}"
+                            } finally {
+                                isLoading = false
                             }
                         }
                     },
@@ -498,6 +519,44 @@ private fun PredictionCard(
                     modifier = Modifier.padding(top = 8.dp)
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun DinahPointsBadge(points: Int) {
+    val gradient = Brush.horizontalGradient(
+        colors = listOf(
+            Color(0xFF83E89E).copy(alpha = 0.7f),
+            Color(0xFF3FCAD9).copy(alpha = 0.7f)
+        )
+    )
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 16.dp, end = 16.dp),
+        horizontalArrangement = Arrangement.End
+    ) {
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(20.dp))
+                .background(gradient)
+                .border(
+                    width = 1.dp,
+                    color = Color.White.copy(alpha = 0.2f),
+                    shape = RoundedCornerShape(20.dp)
+                )
+        ) {
+            Text(
+                text = "Dinah Points: $points ★",
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                style = MaterialTheme.typography.titleSmall.copy(
+                    fontSize = 18.sp
+                ),
+                color = Color.White,
+                fontWeight = FontWeight.Medium
+            )
         }
     }
 }
