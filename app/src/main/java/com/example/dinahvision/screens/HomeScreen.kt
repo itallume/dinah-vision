@@ -72,7 +72,6 @@ import java.util.Date
 import java.util.Locale
 
 
-// Enum para tipos de filtro
 private enum class PrevisionFilter { CURRENT, WRONG, CORRECT }
 
 private fun getFilterColors(filter: PrevisionFilter): Pair<Color, Color> {
@@ -87,7 +86,6 @@ private fun getFilterColors(filter: PrevisionFilter): Pair<Color, Color> {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(modifier: Modifier) {
-    // Estados principais
     var listPredictions by remember { mutableStateOf<List<Prevision>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var showDialog by remember { mutableStateOf(false) }
@@ -99,7 +97,6 @@ fun HomeScreen(modifier: Modifier) {
     var modalErrorMessage by remember { mutableStateOf<String?>(null) }
     var showModalError by remember { mutableStateOf(false) }
 
-    // Estado do filtro ativo
     var currentFilter by remember { mutableStateOf(PrevisionFilter.CURRENT) }
 
     val dateFormatter = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()) }
@@ -127,7 +124,6 @@ fun HomeScreen(modifier: Modifier) {
         loadPredictions()
     }
 
-    // Filtra a lista conforme o filtro selecionado
     val filteredList = listPredictions.filter { p ->
         when (currentFilter) {
             PrevisionFilter.CURRENT -> !p.finished
@@ -140,8 +136,8 @@ fun HomeScreen(modifier: Modifier) {
         Image(
             painter = painterResource(id = R.drawable.home),
             contentDescription = null,
-            contentScale = ContentScale.Crop,             // ou ContentScale.FillBounds
-            modifier = Modifier.matchParentSize()         // ocupa todo o box
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.matchParentSize()
         )
         if (isLoading) {
             CircularProgressIndicator()
@@ -194,7 +190,7 @@ fun HomeScreen(modifier: Modifier) {
                         ) {
                             Column(
                                 modifier = Modifier
-                                    .fillMaxWidth(),             // ocupa toda a largura do botão
+                                    .fillMaxWidth(),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center
                             ) {
@@ -206,9 +202,9 @@ fun HomeScreen(modifier: Modifier) {
                                 Spacer(modifier = Modifier.size(4.dp))
                                 Text(
                                     text = text,
-                                    maxLines = 1,                // força 1 linha
-                                    softWrap = false,            // sem wrap
-                                    overflow = TextOverflow.Ellipsis,  // opcional, corta com "…" se não couber
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    overflow = TextOverflow.Ellipsis,
                                     style = MaterialTheme.typography.labelMedium
                                 )
                             }
@@ -216,8 +212,6 @@ fun HomeScreen(modifier: Modifier) {
                     }
                 }
 
-
-                // Lista de previsões filtradas
                 if (filteredList.isEmpty()) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -247,7 +241,6 @@ fun HomeScreen(modifier: Modifier) {
                 }
             }
 
-            // FloatingActionButton e dialogs (mantém igual ao original)
             FloatingActionButton(
                 onClick = {
                     showDialog = true
@@ -400,7 +393,7 @@ private fun PredictionCard(
         PrevisionFilter.CORRECT -> Brush.linearGradient(
             listOf(Color(0xFF83E89E), Color(0xFF3FCAD9))
         )
-        PrevisionFilter.CURRENT -> Brush.linearGradient( //nao tem gradient só repeti cor
+        PrevisionFilter.CURRENT -> Brush.linearGradient(
             listOf(Color(0xFFE0D9F5), Color(0xFFE0D9F5))
         )
     }
@@ -416,7 +409,6 @@ private fun PredictionCard(
             Text(
                 text = prevision.title,
                 style = MaterialTheme.typography.titleLarge,
-                // se precisar de texto claro sobre fundo escuro:
                 color = if (filter == PrevisionFilter.CORRECT) Color.Black else Color.White,
                 modifier = Modifier.padding(bottom = 8.dp),
 
@@ -434,20 +426,57 @@ private fun PredictionCard(
                 else Color.White.copy(alpha = 0.7f)
             )
 
-            Row(
-                modifier = Modifier.padding(top = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Button(
-                    onClick = {
+            if (!prevision.finished) {
+                Row(
+                    modifier = Modifier.padding(top = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = {
+                                scope.launch {
+                                    isLoading = true
+                                    errorMessage = null
+                                    try {
+                                        val success = PrevisionDAO().markPredictionAsCorrect(prevision.id)
+                                        if (success) {
+                                            prevision.finished = true
+                                            prevision.predicted = true
+                                            val points = PointsCalculator.calculate(prevision)
+                                            User.currentUser!!.points += points
+                                            UserDAO().updateUser(User.currentUser!!)
+                                            onPredictionUpdated()
+                                        } else {
+                                            errorMessage = "Falha ao atualizar"
+                                        }
+                                    } catch (e: Exception) {
+                                        errorMessage = "Erro: ${e.localizedMessage}"
+                                    } finally {
+                                        isLoading = false
+                                    }
+                                }
+
+                        },
+                        enabled = !isLoading && !prevision.finished
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text("Acertei")
+                        }
+                    }
+
+                    Button(
+                        onClick = {
                             scope.launch {
                                 isLoading = true
                                 errorMessage = null
                                 try {
-                                    val success = PrevisionDAO().markPredictionAsCorrect(prevision.id)
+                                    val success = PrevisionDAO().markPredictionAsWrong(prevision.id)
                                     if (success) {
-                                        prevision.finished = true
-                                        prevision.predicted = true
                                         val points = PointsCalculator.calculate(prevision)
                                         User.currentUser!!.points += points
                                         UserDAO().updateUser(User.currentUser!!)
@@ -461,53 +490,18 @@ private fun PredictionCard(
                                     isLoading = false
                                 }
                             }
-
-                    },
-                    enabled = !isLoading && !prevision.finished
-                ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            color = Color.White,
-                            strokeWidth = 2.dp
-                        )
-                    } else {
-                        Text("Acertei")
-                    }
-                }
-
-                Button(
-                    onClick = {
-                        scope.launch {
-                            isLoading = true
-                            errorMessage = null
-                            try {
-                                val success = PrevisionDAO().markPredictionAsWrong(prevision.id)
-                                if (success) {
-                                    val points = PointsCalculator.calculate(prevision)
-                                    User.currentUser!!.points += points
-                                    UserDAO().updateUser(User.currentUser!!)
-                                    onPredictionUpdated()
-                                } else {
-                                    errorMessage = "Falha ao atualizar"
-                                }
-                            } catch (e: Exception) {
-                                errorMessage = "Erro: ${e.localizedMessage}"
-                            } finally {
-                                isLoading = false
-                            }
+                        },
+                        enabled = !isLoading && !prevision.finished
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text("Errei")
                         }
-                    },
-                    enabled = !isLoading && !prevision.finished
-                ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            color = Color.White,
-                            strokeWidth = 2.dp
-                        )
-                    } else {
-                        Text("Errei")
                     }
                 }
             }

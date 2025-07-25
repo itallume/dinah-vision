@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -72,7 +73,6 @@ fun SignUpScreen(
         modifier = Modifier
             .fillMaxSize()
     ) {
-        // fundo com seu drawable login.png
         Image(
             painter = painterResource(id = R.drawable.login),
             contentDescription = null,
@@ -92,6 +92,7 @@ fun SignUpScreen(
             OutlinedTextField(
                 value = username,
                 onValueChange = { username = it },
+                textStyle = LocalTextStyle.current.copy(color = Color.Black),
                 placeholder = { Text("Usuário") },
                 leadingIcon = {
                     Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF3BB2F9))
@@ -116,6 +117,7 @@ fun SignUpScreen(
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
+                textStyle = LocalTextStyle.current.copy(color = Color.Black),
                 placeholder = { Text("Senha") },
                 leadingIcon = {
                     Icon(Icons.Default.Lock, contentDescription = null, tint = Color(0xFF8C5CFF))
@@ -142,6 +144,7 @@ fun SignUpScreen(
             OutlinedTextField(
                 value = confirmPassword,
                 onValueChange = { confirmPassword = it },
+                textStyle = LocalTextStyle.current.copy(color = Color.Black),
                 placeholder = { Text("Confirmar Senha") },
                 leadingIcon = {
                     Icon(Icons.Default.Lock, contentDescription = null, tint = Color(0xFF8C5CFF))
@@ -176,7 +179,6 @@ fun SignUpScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Botão Cadastrar com gradiente e largura fixa
             Box(
                 modifier = Modifier
                     .width(200.dp)
@@ -240,7 +242,6 @@ fun SignUpScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Link para login
             TextButton(onClick = {
                 navController.navigate("signIn") {
                     popUpTo("signUp") { inclusive = true }

@@ -20,7 +20,7 @@ class PrevisionDAO {
 //                "startDate" to prevision.startDate,
 //                "endDate" to prevision.endDate,
 //                "predicted" to prevision.predicted,
-//                "user" to prevision.user?.let { db.document("users/${it.uid}") }  // Referência ao documento do usuário
+//                "user" to prevision.user?.let { db.document("users/${it.uid}") }
 //            )
 //
 //            db.collection(collection)

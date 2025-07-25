@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -68,12 +69,10 @@ fun SignInScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    // Usamos um Box para empilhar a imagem de background atrás de todo o conteúdo
     Box(
         modifier = modifier
             .fillMaxSize()
     ) {
-        // 1) Imagem de fundo
         Image(
             painter = painterResource(id = R.drawable.login),
             contentDescription = "Background",
@@ -81,7 +80,6 @@ fun SignInScreen(
             modifier = Modifier.matchParentSize()
         )
 
-        // 2) Conteúdo centralizado
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -99,10 +97,10 @@ fun SignInScreen(
                 fontWeight = FontWeight.SemiBold
             )
 
-            // 3) Campo de usuário estilizado
             OutlinedTextField(
                 value = username,
                 onValueChange = { username = it },
+                textStyle = LocalTextStyle.current.copy(color = Color.Black),
                 placeholder = { Text("Username") },
                 leadingIcon = {
                     Icon(
@@ -127,10 +125,10 @@ fun SignInScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 4) Campo de senha estilizado
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
+                textStyle = LocalTextStyle.current.copy(color = Color.Black),
                 placeholder = { Text("Password") },
                 leadingIcon = {
                     Icon(
@@ -168,7 +166,6 @@ fun SignInScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 5) Botão com gradiente
             Box(
                 modifier = Modifier
                     .width(200.dp)
@@ -181,7 +178,6 @@ fun SignInScreen(
                         )
                     )
                     .clickable {
-                        // lógica do click
                         if (username.isEmpty() || password.isEmpty()) {
                             errorMessage = "Preencha todos os campos"
                         } else {
@@ -213,7 +209,6 @@ fun SignInScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // 6) Link para cadastro
             TextButton(onClick = { navController.navigate("signUp") }) {
                 Text(
                     buildAnnotatedString {
