@@ -95,8 +95,8 @@ fun SignUpScreen(
             Spacer(modifier = Modifier.height(100.dp))
             // Usuário
             OutlinedTextField(
-                value = username,
-                onValueChange = { username = it },
+                value = uiState.username,
+                onValueChange = { viewModel.updateUsername(it) },
                 textStyle = LocalTextStyle.current.copy(color = Color.Black),
                 placeholder = { Text("Usuário") },
                 leadingIcon = {
@@ -120,8 +120,8 @@ fun SignUpScreen(
 
             // Senha
             OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
+                value = uiState.password,
+                onValueChange = { viewModel.updatePassword(it) },
                 textStyle = LocalTextStyle.current.copy(color = Color.Black),
                 placeholder = { Text("Senha") },
                 leadingIcon = {
@@ -147,7 +147,8 @@ fun SignUpScreen(
 
             // Confirmar senha
             OutlinedTextField(
-                value = confirmPassword,
+                value = uiState.confirmPassword,
+                onValueChange = { viewModel.updateConfirmPassword(it) },
                 onValueChange = { confirmPassword = it },
                 textStyle = LocalTextStyle.current.copy(color = Color.Black),
                 placeholder = { Text("Confirmar Senha") },
@@ -171,9 +172,9 @@ fun SignUpScreen(
                     .shadow(4.dp, RoundedCornerShape(50))
             )
 
-            if (errorMessage.isNotEmpty()) {
+            if (uiState.errorMessage != null) {
                 Text(
-                    text = errorMessage,
+                    text = uiState.errorMessage,
                     color = Color.Red,
                     textAlign = TextAlign.Center,
                     modifier = Modifier
@@ -196,50 +197,12 @@ fun SignUpScreen(
                         )
                     )
                     .clickable {
-                        when {
-                            username.isEmpty() || password.isEmpty() || confirmPassword.isEmpty() -> {
-                                errorMessage = "Preencha todos os campos"
-                            }
-                            password != confirmPassword -> {
-                                errorMessage = "As senhas não coincidem"
-                            }
-                            else -> {
-                                isLoading = true
-                                scope.launch {
-                                    try {
-                                        val userDAO = UserDAO()
-                                        val existing = withContext(Dispatchers.IO) {
-                                            userDAO.getUserByUsername(username)
-                                        }
-                                        if (existing != null) {
-                                            errorMessage = "Usuário já existe"
-                                        } else {
-                                            withContext(Dispatchers.IO) {
-                                                userDAO.createUser(
-                                                    com.example.dinahvision.models.User(
-                                                        username = username,
-                                                        password = password,
-                                                        points = 0,
-                                                    )
-                                                )
-                                            }
-                                            navController.navigate("signIn") {
-                                                popUpTo("signUp") { inclusive = true }
-                                            }
-                                        }
-                                    } catch(e: Exception) {
-                                        errorMessage = "Erro ao cadastrar: ${e.message}"
-                                    } finally {
-                                        isLoading = false
-                                    }
-                                }
-                            }
-                        }
+                        viewModel.signUp()
                     },
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = if (isLoading) "Criando conta..." else "Cadastrar",
+                    text = if (uiState.isLoading) "Criando conta..." else "Cadastrar",
                     color = Color.White,
                     fontSize = 16.sp
                 )
