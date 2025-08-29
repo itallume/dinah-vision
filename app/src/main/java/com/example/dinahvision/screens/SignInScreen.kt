@@ -50,24 +50,29 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.dinahvision.R
-import com.example.dinahvision.repository.UserDAO
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import com.example.dinahvision.viewmodel.SignInViewModel
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SignInScreen(
     modifier: Modifier = Modifier,
-    navController: NavController
+    navController: NavController,
+    viewModel: SignInViewModel = viewModel()
 ) {
-    var username by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var errorMessage by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
-    val context = LocalContext.current
+    val uiState by viewModel.uiState.collectAsState()
+    
+    // Navegar para home quando login for bem-sucedido
+    LaunchedEffect(uiState.isLoginSuccessful) {
+        if (uiState.isLoginSuccessful) {
+            navController.navigate("home") {
+                popUpTo("signIn") { inclusive = true }
+            }
+        }
+    }
 
     Box(
         modifier = modifier
@@ -98,8 +103,8 @@ fun SignInScreen(
             )
 
             OutlinedTextField(
-                value = username,
-                onValueChange = { username = it },
+                value = uiState.username,
+                onValueChange = { viewModel.updateUsername(it) },
                 textStyle = LocalTextStyle.current.copy(color = Color.Black),
                 placeholder = { Text("Username") },
                 leadingIcon = {
@@ -126,8 +131,8 @@ fun SignInScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
+                value = uiState.password,
+                onValueChange = { viewModel.updatePassword(it) },
                 textStyle = LocalTextStyle.current.copy(color = Color.Black),
                 placeholder = { Text("Password") },
                 leadingIcon = {
@@ -153,9 +158,9 @@ fun SignInScreen(
                     .shadow(4.dp, RoundedCornerShape(50))
             )
 
-            if (errorMessage.isNotEmpty()) {
+            if (uiState.errorMessage != null) {
                 Text(
-                    text = errorMessage,
+                    text = uiState.errorMessage,
                     color = Color.Red,
                     textAlign = TextAlign.Center,
                     modifier = Modifier
@@ -178,29 +183,12 @@ fun SignInScreen(
                         )
                     )
                     .clickable {
-                        if (username.isEmpty() || password.isEmpty()) {
-                            errorMessage = "Preencha todos os campos"
-                        } else {
-                            isLoading = true
-                            scope.launch {
-                                val success = withContext(Dispatchers.IO) {
-                                    UserDAO().login(username.trim(), password)
-                                }
-                                if (success) {
-                                    navController.navigate("home") {
-                                        popUpTo("signIn") { inclusive = true }
-                                    }
-                                } else {
-                                    errorMessage = "Usuário ou senha incorretos"
-                                }
-                                isLoading = false
-                            }
-                        }
+                        viewModel.signIn()
                     },
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = if (isLoading) "Carregando..." else "Entrar",
+                    text = if (uiState.isLoading) "Carregando..." else "Entrar",
                     color = Color.White,
                     fontSize = 16.sp,
 
