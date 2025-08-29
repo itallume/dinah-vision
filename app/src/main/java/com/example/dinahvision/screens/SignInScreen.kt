@@ -64,7 +64,7 @@ import org.koin.java.KoinJavaComponent.get
 fun SignInScreen(
     modifier: Modifier = Modifier,
     navController: NavController,
-    sessionManager: SessionManager = get(SessionManager::class.java)
+        sessionManager: SessionManager = get(SessionManager::class.java)
 ) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }

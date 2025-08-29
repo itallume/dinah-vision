@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
     id("com.google.gms.google-services")
+    id("com.google.devtools.ksp")
 }
 
 android {
@@ -56,6 +57,8 @@ dependencies {
     implementation("io.insert-koin:koin-androidx-compose:4.0.3")
     val room_version = "2.7.2"
     implementation("androidx.room:room-runtime:$room_version")
+    ksp("androidx.room:room-compiler:$room_version")
+    implementation("androidx.room:room-ktx:$room_version")
     implementation(libs.firebase.firestore.ktx)
     val nav_version = "2.9.2"
     implementation("androidx.navigation:navigation-compose:$nav_version")

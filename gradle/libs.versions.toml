@@ -31,4 +31,4 @@ firebase-firestore-ktx = { group = "com.google.firebase", name = "firebase-fires
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version = "2.1.0" }
 android-application = { id = "com.android.application", version.ref = "agp" }
 jetbrains-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
-
+ksp = { id = "com.google.devtools.ksp", version = "1.9.0-1.0.13" }
