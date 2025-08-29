@@ -4,49 +4,17 @@ import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.ElevatedButton
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -59,20 +27,13 @@ import com.example.dinahvision.R
 import com.example.dinahvision.models.PointsCalculator
 import com.example.dinahvision.models.Prevision
 import com.example.dinahvision.models.User
-import com.example.dinahvision.models.User.Companion.currentUser
+import com.example.dinahvision.models.PrevisionFilter
 import com.example.dinahvision.repository.PrevisionDAO
 import com.example.dinahvision.repository.UserDAO
-import com.google.firebase.Timestamp
-import kotlinx.coroutines.Dispatchers
+import com.example.dinahvision.ui.viewmodel.HomeViewModel
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Date
-import java.util.Locale
-
-
-private enum class PrevisionFilter { CURRENT, WRONG, CORRECT }
+import java.util.*
 
 private fun getFilterColors(filter: PrevisionFilter): Pair<Color, Color> {
     return when (filter) {
@@ -82,54 +43,23 @@ private fun getFilterColors(filter: PrevisionFilter): Pair<Color, Color> {
     }
 }
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(modifier: Modifier) {
-    var listPredictions by remember { mutableStateOf<List<Prevision>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
-    var showDialog by remember { mutableStateOf(false) }
-    var newPrevision by remember { mutableStateOf(Prevision()) }
-    var showDatePicker by remember { mutableStateOf(false) }
-    var selectedEndDate by remember { mutableStateOf<Date?>(null) }
-    var userPoints by remember { mutableStateOf(User.currentUser?.points ?: 0) }
-
-    var modalErrorMessage by remember { mutableStateOf<String?>(null) }
-    var showModalError by remember { mutableStateOf(false) }
-
-    var currentFilter by remember { mutableStateOf(PrevisionFilter.CURRENT) }
-
+fun HomeScreen(viewModel: HomeViewModel, modifier: Modifier = Modifier) {
+    val state by viewModel.uiState.collectAsState()
     val dateFormatter = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()) }
     val scope = rememberCoroutineScope()
 
-    fun loadPredictions() {
-        scope.launch {
-            try {
-                listPredictions = PrevisionDAO().listPredictionsByUser()
-                User.currentUser?.let { user ->
-                    val updatedUser = UserDAO().getUser(user.uid)
-                    updatedUser?.let {
-                        userPoints = it.points
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e("HomeScreen", "Erro ao carregar previsões", e)
-            } finally {
-                isLoading = false
-            }
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        loadPredictions()
-    }
-
-    val filteredList = listPredictions.filter { p ->
-        when (currentFilter) {
+    val filteredList = state.predictions.filter { p: Prevision ->
+        when (state.currentFilter) {
             PrevisionFilter.CURRENT -> !p.finished
             PrevisionFilter.WRONG -> p.finished && !p.predicted
             PrevisionFilter.CORRECT -> p.finished && p.predicted
         }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.loadPredictions()
     }
 
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -139,28 +69,22 @@ fun HomeScreen(modifier: Modifier) {
             contentScale = ContentScale.Crop,
             modifier = Modifier.matchParentSize()
         )
-        if (isLoading) {
+
+        if (state.isLoading) {
             CircularProgressIndicator()
         } else {
-            Column(modifier = Modifier.fillMaxSize()
-                //.padding(top = 140.dp)
-            ) {
+            Column(modifier = Modifier.fillMaxSize()) {
                 Image(
                     painter = painterResource(id = R.drawable.logodinah),
                     contentDescription = "Logo DinahVision",
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(150.dp)
-                        //.padding(top = 10.dp, bottom = 12.dp)
                 )
-//                Text(
-//                    text = "Olá ${currentUser?.username ?: "Usuário"}",
-//                    modifier = Modifier.padding(16.dp),
-//                    style = MaterialTheme.typography.titleLarge
-//                )
 
-                DinahPointsBadge(points = userPoints)
+                DinahPointsBadge(points = state.userPoints)
 
+                // Filtros
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -168,29 +92,28 @@ fun HomeScreen(modifier: Modifier) {
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     listOf(
-                        Triple(PrevisionFilter.WRONG,   "Erradas",   R.drawable.erradashome),
-                        Triple(PrevisionFilter.CURRENT, "Atuais",    R.drawable.atuaishome),
+                        Triple(PrevisionFilter.WRONG, "Erradas", R.drawable.erradashome),
+                        Triple(PrevisionFilter.CURRENT, "Atuais", R.drawable.atuaishome),
                         Triple(PrevisionFilter.CORRECT, "Acertadas", R.drawable.acertadashome)
                     ).forEach { (filterType, text, icon) ->
-                        val isActive = currentFilter == filterType
+                        val isActive = state.currentFilter == filterType
                         val (startColor, _) = getFilterColors(filterType)
 
                         Button(
-                            onClick = { currentFilter = filterType },
+                            onClick = { viewModel.setFilter(filterType) },
                             modifier = Modifier
                                 .weight(1f)
                                 .padding(horizontal = 4.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = if (isActive) startColor else Color.LightGray.copy(alpha = 0.3f),
-                                contentColor   = if (isActive) Color.White else Color.Gray
+                                contentColor = if (isActive) Color.White else Color.Gray
                             ),
                             elevation = ButtonDefaults.buttonElevation(
                                 defaultElevation = if (isActive) 4.dp else 0.dp
                             )
                         ) {
                             Column(
-                                modifier = Modifier
-                                    .fillMaxWidth(),
+                                modifier = Modifier.fillMaxWidth(),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center
                             ) {
@@ -203,7 +126,6 @@ fun HomeScreen(modifier: Modifier) {
                                 Text(
                                     text = text,
                                     maxLines = 1,
-                                    softWrap = false,
                                     overflow = TextOverflow.Ellipsis,
                                     style = MaterialTheme.typography.labelMedium
                                 )
@@ -226,155 +148,100 @@ fun HomeScreen(modifier: Modifier) {
                             .weight(1f)
                             .fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp)
+                        contentPadding = PaddingValues(16.dp)
                     ) {
                         items(filteredList) { prevision ->
                             PredictionCard(
                                 prevision = prevision,
-                                filter = currentFilter,
-                                onPredictionUpdated = {
-                                    loadPredictions()
-                                }
+                                filter = state.currentFilter,
+                                onPredictionUpdated = { viewModel.loadPredictions() }
                             )
                         }
                     }
                 }
-            }
 
-            FloatingActionButton(
-                onClick = {
-                    showDialog = true
-                    modalErrorMessage = null
-                    showModalError = false
-                },
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(16.dp),
-                containerColor = MaterialTheme.colorScheme.primary
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Adicionar previsão")
-            }
+                // Floating Action Button
+                FloatingActionButton(
+                    onClick = { viewModel.showDialog(true) },
+                    modifier = Modifier
+                        .align(Alignment.End)
+                        .padding(16.dp),
+                    containerColor = MaterialTheme.colorScheme.primary
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Adicionar previsão")
+                }
 
-            if (showDialog) {
-                AlertDialog(
-                    onDismissRequest = {
-                        showDialog = false
-                        showModalError = false
-                    },
-                    title = { Text("Nova Previsão") },
-                    text = {
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            OutlinedTextField(
-                                value = newPrevision.title,
-                                onValueChange = { newPrevision = newPrevision.copy(title = it) },
-                                label = { Text("Título") },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(bottom = 8.dp)
-                            )
-                            OutlinedTextField(
-                                value = newPrevision.description,
-                                onValueChange = { newPrevision = newPrevision.copy(description = it) },
-                                label = { Text("Descrição") },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(bottom = 8.dp)
-                            )
-                            ElevatedButton(
-                                onClick = { showDatePicker = true },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 8.dp)
-                            ) {
-                                Text(
-                                    text = selectedEndDate?.let {
-                                        dateFormatter.format(it)
-                                    } ?: "Selecione a data final"
+                // Dialog
+                if (state.showDialog) {
+                    AlertDialog(
+                        onDismissRequest = { viewModel.showDialog(false) },
+                        title = { Text("Nova Previsão") },
+                        text = {
+                            Column {
+                                OutlinedTextField(
+                                    value = state.newPrevision.title,
+                                    onValueChange = { viewModel.updateNewPrevision(state.newPrevision.copy(title = it)) },
+                                    label = { Text("Título") },
+                                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
                                 )
-                            }
-                            if (showModalError && !modalErrorMessage.isNullOrEmpty()) {
-                                Text(
-                                    text = modalErrorMessage!!,
-                                    color = MaterialTheme.colorScheme.error,
-                                    modifier = Modifier.padding(top = 8.dp)
+                                OutlinedTextField(
+                                    value = state.newPrevision.description,
+                                    onValueChange = { viewModel.updateNewPrevision(state.newPrevision.copy(description = it)) },
+                                    label = { Text("Descrição") },
+                                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
                                 )
+                                ElevatedButton(
+                                    onClick = { viewModel.showDatePicker(true) },
+                                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                                ) {
+                                    Text(
+                                        text = state.selectedEndDate?.let { dateFormatter.format(Date(it)) } ?: "Selecione a data final"
+                                    )
+                                }
+                                if (state.showModalError && !state.modalErrorMessage.isNullOrEmpty()) {
+                                    Text(
+                                        text = state.modalErrorMessage!!,
+                                        color = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.padding(top = 8.dp)
+                                    )
+                                }
                             }
-                        }
-                    },
-                    confirmButton = {
-                        Button(
-                            onClick = {
-                                if (selectedEndDate == null) {
-                                    modalErrorMessage = "Selecione uma data final"
-                                    showModalError = true
+                        },
+                        confirmButton = {
+                            Button(onClick = {
+                                if (state.selectedEndDate == null) {
+                                    viewModel.showError("Selecione uma data final")
                                     return@Button
                                 }
+
                                 scope.launch {
                                     try {
-                                        val finalPrevision = newPrevision.copy(
-                                            startDate = Timestamp.now(),
-                                            endDate = Timestamp(selectedEndDate!!),
+                                        val finalPrevision = state.newPrevision.copy(
+                                            startDate = com.google.firebase.Timestamp.now(),
+                                            endDate = com.google.firebase.Timestamp(Date(state.selectedEndDate!!)),
                                             predicted = false,
-                                            userId = currentUser!!.uid
+                                            userId = User.currentUser!!.uid
                                         )
-                                        PrevisionDAO().savePrevision(finalPrevision)
-                                        loadPredictions()
-                                        showDialog = false
-                                        newPrevision = Prevision()
-                                        selectedEndDate = null
-                                        showModalError = false
+                                        viewModel.loadPredictions()
+                                        viewModel.showDialog(false)
                                     } catch (e: Exception) {
-                                        modalErrorMessage = "Erro ao salvar: ${e.localizedMessage}"
-                                        showModalError = true
+                                        viewModel.showError("Erro ao salvar: ${e.localizedMessage}")
                                         Log.e("HomeScreen", "Erro ao salvar previsão", e)
                                     }
                                 }
+                            }) {
+                                Text("Salvar")
                             }
-                        ) {
-                            Text("Salvar")
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { viewModel.showDialog(false) }) { Text("Cancelar") }
                         }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = {
-                            showDialog = false
-                            showModalError = false
-                        }) {
-                            Text("Cancelar")
-                        }
-                    }
-                )
-            }
-            if (showDatePicker) {
-                val datePickerState = rememberDatePickerState(
-                    initialSelectedDateMillis = selectedEndDate?.time ?: System.currentTimeMillis()
-                )
-                DatePickerDialog(
-                    onDismissRequest = { showDatePicker = false },
-                    confirmButton = {
-                        Button(onClick = {
-                            datePickerState.selectedDateMillis?.let {
-                                val calendar = Calendar.getInstance().apply {
-                                    timeInMillis = it
-                                    add(Calendar.HOUR_OF_DAY, 3)
-                                }
-                                selectedEndDate = calendar.time
-                            }
-                            showDatePicker = false
-                        }) {
-                            Text("OK")
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { showDatePicker = false }) { Text("Cancelar") }
-                    }
-                ) {
-                    DatePicker(state = datePickerState)
+                    )
                 }
             }
         }
     }
 }
-
 
 @Composable
 private fun PredictionCard(
