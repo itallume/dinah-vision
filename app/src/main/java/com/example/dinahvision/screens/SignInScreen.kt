@@ -52,15 +52,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.dinahvision.R
+import com.example.dinahvision.repository.SessionManager
 import com.example.dinahvision.repository.UserDAO
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.koin.java.KoinJavaComponent.get
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SignInScreen(
     modifier: Modifier = Modifier,
-    navController: NavController
+    navController: NavController,
+    sessionManager: SessionManager = get(SessionManager::class.java)
 ) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -187,6 +191,11 @@ fun SignInScreen(
                                     UserDAO().login(username.trim(), password)
                                 }
                                 if (success) {
+                                    sessionManager.createSession(
+                                        userId = username.trim(),
+                                        username = username.trim(),
+                                        durationMinutes = 1
+                                    )
                                     navController.navigate("home") {
                                         popUpTo("signIn") { inclusive = true }
                                     }

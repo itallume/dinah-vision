@@ -10,9 +10,9 @@ import com.example.dinahvision.screens.SignInScreen
 import com.example.dinahvision.screens.SignUpScreen
 
 @Composable
-fun Navigation(modifier: Modifier){
+fun Navigation(modifier: Modifier, initialScreen: String){
     val navController = rememberNavController()
-    NavHost(navController = navController, startDestination = "signIn" ){
+    NavHost(navController = navController, startDestination = initialScreen ){
         composable("signIn") {
             SignInScreen(
                 modifier = modifier,
@@ -20,11 +20,10 @@ fun Navigation(modifier: Modifier){
             )
         }
         composable("signUp") {
-            // Passa só o navController, já que é o único parâmetro
             SignUpScreen(navController = navController)
         }
         composable("home") {
-            HomeScreen(modifier = modifier)
+            HomeScreen(modifier = modifier, navController = navController)
         }
     }
 }

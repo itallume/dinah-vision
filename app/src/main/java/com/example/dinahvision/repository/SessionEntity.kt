@@ -3,10 +3,10 @@ package com.example.dinahvision.repository
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "sessions")
+@Entity(tableName = "session")
 data class SessionEntity(
-    @PrimaryKey val userId: String,
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val userId: String,
     val username: String,
-    val loginTime: Long,
-    val expirationTime: Long
+    val expiration: Long
 )

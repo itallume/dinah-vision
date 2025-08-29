@@ -5,14 +5,17 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 
+import androidx.room.*
+
 @Dao
 interface SessionDao {
-    @Query("SELECT * FROM sessions LIMIT 1")
-    suspend fun getSession(): SessionEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun saveSession(session: SessionEntity)
+    suspend fun createSession(session: SessionEntity)
 
-    @Query("DELETE FROM sessions")
+    @Query("SELECT * FROM session LIMIT 1")
+    suspend fun getSession(): SessionEntity?
+
+    @Query("DELETE FROM session")
     suspend fun clearSession()
 }
